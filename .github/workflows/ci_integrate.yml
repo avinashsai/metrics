@@ -39,7 +39,7 @@ jobs:
     timeout-minutes: 45
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v2
       with:
@@ -52,11 +52,6 @@ jobs:
         python-version: ${{ matrix.python-version }}
         offset: "integrate"
 
-    - name: Install base dependencies
-      run: |
-        pip --version
-        pip install -r requirements.txt --upgrade --find-links $PYTORCH_URL
-
     - name: Freeze Numpy (hotfix)
       if: matrix.requires == 'latest'
       run: pip install -q "numpy==1.20.0"  # temp fix for cypesq
@@ -67,15 +62,15 @@ jobs:
 
     - name: Install all dependencies
       run: |
+        pip install -e . --upgrade --find-links $PYTORCH_URL
         python ./requirements/adjust-versions.py requirements.txt
         python ./requirements/adjust-versions.py requirements/image.txt
-        pip install --requirement requirements/devel.txt --upgrade --find-links $PYTORCH_URL
-        pip install -r requirements/integrate.txt --quiet --upgrade-strategy only-if-needed --find-links $PYTORCH_URL
-        pip uninstall -y torchmetrics
+        pip install -e . --find-links $PYTORCH_URL
+        pip install -r requirements/test.txt -r requirements/integrate.txt
         pip list
 
     - name: Integrations
+      working-directory: ./test
       env:
         PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION: 'python'
-      run: |
-        python -m pytest integrations -v --durations=25
+      run: python -m pytest integrations -v --durations=25
